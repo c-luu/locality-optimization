@@ -5,7 +5,9 @@ This project explores two compiler techniques for locality optimization at the f
 
 ## Setup
 > docker pull ocaml/opam
+
 > docker run -it --rm -v "$(pwd)":/src ocaml/opam /bin/bash
+
 > opam install utop
 
 ## Compile
