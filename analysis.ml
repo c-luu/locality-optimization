@@ -1,3 +1,4 @@
+(* Types *)
 type binary_function = BinaryFunction of string;;
 type expression = 
     | Symbol of string
@@ -5,8 +6,6 @@ type expression =
 type line = Line of expression * expression;;
 type basic_block = line list;;
 type ('k, 'v) lvn = ('k, 'v) Hashtbl.t;;
-
-(* CFG *)
 type node = 
     | Block of basic_block
     | EntryNode of basic_block
@@ -16,6 +15,21 @@ type edge = node * node;;
 type edges = edge list;;
 type cfg = nodes * edges;;
 
+(* Utility Functions *)
+let fail_with msg = raise (Failure msg);;
+let lvn_msg_for blk = 
+    Printf.printf "LVN Table for Block: %s\n" (string_of_int blk);;
+let print_line line = 
+    match line with
+    | Line (Symbol t, Operation (BinaryFunction b, Symbol x, Symbol y)) ->
+        Printf.printf "%s\n" (t ^ "=" ^ x ^ b ^ y)
+    | Line (Symbol x, Symbol y) ->
+        Printf.printf "%s\n" (x ^ "=" ^ y)
+    | Line (_, _) ->
+        fail_with "Main pattern not matched in print function.";;
+let print_og_block blk = 
+    Printf.printf "Original Block:\n";
+    List.iter print_line blk;;
 
 (* Local Value Numbering *)
 let add = BinaryFunction "+";;
@@ -46,21 +60,22 @@ let blk_0 = [
                 Line (d, Operation (sub, a, d)); 
             ];;
 *)
-let fail_with msg = raise (Failure msg);;
 
 let hash_block blk seed = 
     let seed = ref seed in
-    let vn_queue = Queue.create () in
+    let vn_tbl = Queue.create () in
+    let rewrites = Queue.create () in
+    let val_tbl = Hashtbl.create 123456 in
     let tbl = Hashtbl.create 123456 in 
     let symbol_exists s = 
         Hashtbl.mem tbl s in
     let to_op_key k =
         match k with
         | b, x, y ->
-                try
-                    (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
-                with e ->
-                    fail_with (Printexc.to_string e)
+            try
+                (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
+            with e ->
+                fail_with (Printexc.to_string e)
     in
     let hash_op o =
         match o with
@@ -69,8 +84,9 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
-                    Queue.add (b ^ x ^ y, !seed) vn_queue;
-                    Queue.add (t, !seed) vn_queue;
+                    Hashtbl.add val_tbl !seed t; 
+                    Queue.add (b ^ x ^ y, !seed) vn_tbl;
+                    Queue.add (t, !seed) vn_tbl;
                     incr seed
                 end
             else
@@ -79,7 +95,8 @@ let hash_block blk seed =
                         begin
                             let k = to_op_key (b, x, y) in
                                 Hashtbl.add tbl t (Hashtbl.find tbl k);
-                                Queue.add (t, (Hashtbl.find tbl k)) vn_queue
+                                Queue.add (t, (Hashtbl.find val_tbl (Hashtbl.find tbl k))) rewrites;
+                                Queue.add (t, (Hashtbl.find tbl k)) vn_tbl
                         end
                     with e ->
                         fail_with (Printexc.to_string e)
@@ -89,7 +106,7 @@ let hash_block blk seed =
         if not (symbol_exists s) then
             begin
                 Hashtbl.add tbl s !seed; 
-                Queue.add (s, !seed) vn_queue;
+                Queue.add (s, !seed) vn_tbl;
                 incr seed;
             end
     in
@@ -100,8 +117,8 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl right !seed; 
                     Hashtbl.add tbl left !seed; 
-                    Queue.add (right, !seed) vn_queue;
-                    Queue.add (left, !seed) vn_queue;
+                    Queue.add (right, !seed) vn_tbl;
+                    Queue.add (left, !seed) vn_tbl;
                     incr seed
                 end
     in
@@ -122,10 +139,13 @@ let hash_block blk seed =
                 
     in
     List.iter hash blk;
-    (tbl, vn_queue);;
+    (tbl, (vn_tbl, rewrites));;
 
-let test_harness blk seed = 
+let test_lvn blk seed = 
     hash_block blk seed;;
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_0 1));;
+lvn_msg_for 0;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (fst (snd (test_lvn blk_0 1)));;
+Queue.iter (fun x -> Printf.printf "%s = %s\n" (fst x) (snd x)) (snd (snd (test_lvn blk_0 1)));;
+print_og_block blk_0;;
