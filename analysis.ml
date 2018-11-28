@@ -54,12 +54,20 @@ let hash_block blk seed =
     let tbl = Hashtbl.create 123456 in 
     let symbol_exists s = 
         Hashtbl.mem tbl s in
+    let to_op_key k =
+        match k with
+        | b, x, y ->
+            (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
+    in
     let hash_op o =
         match o with
         | t , b , x , y ->
-            if not (symbol_exists (b ^ x ^ y)) then
+            if not (symbol_exists (to_op_key (b, x, y))) then
                 begin
-                    Hashtbl.add tbl (b ^ x ^ y) !seed; 
+                    Printf.printf "Inserting: %s \n" (x ^ y) ;
+                    Printf.printf " with key: %s \n" (to_op_key (b, x, y)) ;
+                    Printf.printf "And lhs: %s \n" t ;
+                    Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
                     Queue.add (b ^ x ^ y, !seed) vn_queue;
                     Queue.add (t, !seed) vn_queue;
@@ -67,16 +75,19 @@ let hash_block blk seed =
                 end
             else
                 begin
-                    Hashtbl.add tbl t (Hashtbl.find tbl (b ^ x ^ y));
-                    Queue.add (t, (Hashtbl.find tbl (b ^ x ^ y))) vn_queue
+                    Hashtbl.add tbl t (Hashtbl.find tbl (to_op_key (b, x, y)));
+                    Printf.printf "Op exists, inserting %s \n" t;
+                    Printf.printf "HOWEVER, crashing on %s \n" (to_op_key (b, x, y));
+                    Queue.add (t, (Hashtbl.find tbl (to_op_key (b, x, y)))) vn_queue
                 end
     in
     let hash_symb s =
         if not (symbol_exists s) then
             begin
+                Printf.printf "Single symbol: %s \n" s;
                 Hashtbl.add tbl s !seed; 
                 Queue.add (s, !seed) vn_queue;
-                incr seed
+                incr seed;
             end
     in
     let hash_ass a =
