@@ -36,27 +36,46 @@ let blk_1 = [ line_1; line_2; line_3; line_4 ];;
 
 let hash_block blk seed = 
     let seed = ref seed in
+    let vn_queue = Queue.create () in
     let tbl = Hashtbl.create 123456 in 
     let symbol_exists s = 
         Hashtbl.mem tbl s in
-    let hash_line l =
-        match l with
+    let hash_op o =
+        match o with
         | t , b , x , y ->
             if not (symbol_exists (b ^ x ^ y)) then
                 begin
                     Hashtbl.add tbl (b ^ x ^ y) !seed; 
+                    Queue.add (b ^ x ^ y, !seed) vn_queue;
                     Hashtbl.add tbl t !seed; 
+                    Queue.add (t, !seed) vn_queue;
                     incr seed
                 end
             else
-                Hashtbl.add tbl t (Hashtbl.find tbl (b ^ x ^ y)) 
+                begin
+                    Hashtbl.add tbl t (Hashtbl.find tbl (b ^ x ^ y));
+                    Queue.add (t, (Hashtbl.find tbl (b ^ x ^ y))) vn_queue
+                end
     in
     let hash_symb s =
         if not (symbol_exists s) then
             begin
                 Hashtbl.add tbl s !seed; 
+                Queue.add (s, !seed) vn_queue;
                 incr seed
             end
+    in
+    let hash_ass a =
+        match a with
+        | left, right ->
+            if not (symbol_exists right) then
+                begin
+                    Hashtbl.add tbl right !seed; 
+                    Hashtbl.add tbl left !seed; 
+                    Queue.add (right, !seed) vn_queue;
+                    Queue.add (left, !seed) vn_queue;
+                    incr seed
+                end
     in
     let hash l = 
         match l with
@@ -64,17 +83,17 @@ let hash_block blk seed =
             begin
                 hash_symb x;
                 hash_symb y;
-                hash_line (t, b, x, y)
+                hash_op (t, b, x, y)
             end
         | Line (Symbol x, Symbol y) ->
             begin
-                hash_symb y;
+                hash_ass (x, y);
             end
     in
     List.iter hash blk;
-    tbl;;
+    (tbl, vn_queue);;
 
 let test_harness blk = 
     hash_block blk 1;;
 
-Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (test_harness blk_1);;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_1));;
