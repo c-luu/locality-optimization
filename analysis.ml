@@ -57,16 +57,20 @@ let hash_block blk seed =
     let to_op_key k =
         match k with
         | b, x, y ->
+                try
             (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
+                with e ->
+                    let msg = Printexc.to_string e 
+                    and stack = Printexc.get_backtrace () in
+                    Printf.printf "Error on op key creation:%s\n" (b ^ x ^ y);
+                    Printf.eprintf "Error %s%s\n" msg stack;
+                    raise e
     in
     let hash_op o =
         match o with
         | t , b , x , y ->
             if not (symbol_exists (to_op_key (b, x, y))) then
                 begin
-                    Printf.printf "Inserting: %s \n" (x ^ y) ;
-                    Printf.printf " with key: %s \n" (to_op_key (b, x, y)) ;
-                    Printf.printf "And lhs: %s \n" t ;
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
                     Queue.add (b ^ x ^ y, !seed) vn_queue;
@@ -75,16 +79,24 @@ let hash_block blk seed =
                 end
             else
                 begin
-                    Hashtbl.add tbl t (Hashtbl.find tbl (to_op_key (b, x, y)));
-                    Printf.printf "Op exists, inserting %s \n" t;
-                    Printf.printf "HOWEVER, crashing on %s \n" (to_op_key (b, x, y));
-                    Queue.add (t, (Hashtbl.find tbl (to_op_key (b, x, y)))) vn_queue
+                    try
+                        begin
+                            let k = to_op_key (b, x, y) in
+                                Hashtbl.add tbl t (Hashtbl.find tbl k);
+                                Queue.add (t, (Hashtbl.find tbl k)) vn_queue
+                        end
+                    with e ->
+                        let msg = Printexc.to_string e 
+                        and stack = Printexc.get_backtrace () in
+                        Printf.printf "Error on t insertion:%s\n" t;
+                        Printf.printf "With hash value of %s\n" (b ^ x ^ y);
+                        Printf.eprintf "Error %s%s\n" msg stack;
+                        raise e
                 end
     in
     let hash_symb s =
         if not (symbol_exists s) then
             begin
-                Printf.printf "Single symbol: %s \n" s;
                 Hashtbl.add tbl s !seed; 
                 Queue.add (s, !seed) vn_queue;
                 incr seed;
@@ -121,4 +133,5 @@ let hash_block blk seed =
 let test_harness blk seed = 
     hash_block blk seed;;
 
+(*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
 Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_0 0));;
