@@ -12,3 +12,7 @@ This project explores two compiler techniques for locality optimization at the f
 
 ## Compile
 > ocamlc -o foo foo.ml
+
+## TODO
+1. Front-end compiler
+2. CFG builder.
