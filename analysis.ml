@@ -35,6 +35,7 @@ let print_og_block blk =
 let add = BinaryFunction "+";;
 let sub = BinaryFunction "-";;
 (* Test 1 *)
+(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let x = Symbol "x";;
@@ -46,9 +47,8 @@ let line_2 = Line (b, Operation (add, x, y));;
 let line_3 = Line (a, seventeen);;
 let line_4 = Line (c, Operation (add, x, y));;
 let blk_0 = [ line_1; line_2; line_3; line_4 ];;
-
+*)
 (* Test 2 *)
-(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
@@ -59,7 +59,6 @@ let blk_0 = [
                 Line (c, Operation (add, b, c)); 
                 Line (d, Operation (sub, a, d)); 
             ];;
-*)
 
 let hash_block blk seed = 
     let seed = ref seed in
@@ -142,5 +141,5 @@ let test_lvn blk seed =
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
 lvn_msg_for 0;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_0 1));;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_0 0));;
 print_og_block blk_0;;
