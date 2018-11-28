@@ -17,11 +17,10 @@ type edges = edge list;;
 type cfg = nodes * edges;;
 
 
-(* Local Val Numbering *)
+(* Local Value Numbering *)
 let add = BinaryFunction "+";;
 let sub = BinaryFunction "-";;
 (* Test 1 *)
-(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let x = Symbol "x";;
@@ -32,10 +31,10 @@ let line_1 = Line (a, Operation (add, x, y));;
 let line_2 = Line (b, Operation (add, x, y));;
 let line_3 = Line (a, seventeen);;
 let line_4 = Line (c, Operation (add, x, y));;
-let blk_0 = [ line_1; line_2; ];;
-let blk_1 = [ line_1; line_2; line_3; line_4 ];;
-*)
+let blk_0 = [ line_1; line_2; line_3; line_4 ];;
+
 (* Test 2 *)
+(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
@@ -46,7 +45,8 @@ let blk_0 = [
                 Line (c, Operation (add, b, c)); 
                 Line (d, Operation (sub, a, d)); 
             ];;
-
+*)
+let fail_with msg = raise (Failure msg);;
 
 let hash_block blk seed = 
     let seed = ref seed in
@@ -58,13 +58,9 @@ let hash_block blk seed =
         match k with
         | b, x, y ->
                 try
-            (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
+                    (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
                 with e ->
-                    let msg = Printexc.to_string e 
-                    and stack = Printexc.get_backtrace () in
-                    Printf.printf "Error on op key creation:%s\n" (b ^ x ^ y);
-                    Printf.eprintf "Error %s%s\n" msg stack;
-                    raise e
+                    fail_with (Printexc.to_string e)
     in
     let hash_op o =
         match o with
@@ -86,12 +82,7 @@ let hash_block blk seed =
                                 Queue.add (t, (Hashtbl.find tbl k)) vn_queue
                         end
                     with e ->
-                        let msg = Printexc.to_string e 
-                        and stack = Printexc.get_backtrace () in
-                        Printf.printf "Error on t insertion:%s\n" t;
-                        Printf.printf "With hash value of %s\n" (b ^ x ^ y);
-                        Printf.eprintf "Error %s%s\n" msg stack;
-                        raise e
+                        fail_with (Printexc.to_string e)
                 end
     in
     let hash_symb s =
@@ -126,6 +117,9 @@ let hash_block blk seed =
             begin
                 hash_ass (x, y);
             end
+        | Line (_, _) ->
+            fail_with "Main pattern not matched in hash function."
+                
     in
     List.iter hash blk;
     (tbl, vn_queue);;
@@ -134,4 +128,4 @@ let test_harness blk seed =
     hash_block blk seed;;
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_0 0));;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_0 1));;
