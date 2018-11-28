@@ -84,7 +84,7 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
-                    Hashtbl.add val_tbl !seed t; 
+                    Hashtbl.replace val_tbl !seed t; 
                     Queue.add (b ^ x ^ y, !seed) vn_tbl;
                     Queue.add (t, !seed) vn_tbl;
                     incr seed
@@ -94,9 +94,10 @@ let hash_block blk seed =
                     try
                         begin
                             let k = to_op_key (b, x, y) in
-                                Hashtbl.add tbl t (Hashtbl.find tbl k);
-                                Queue.add (t, (Hashtbl.find val_tbl (Hashtbl.find tbl k))) rewrites;
-                                Queue.add (t, (Hashtbl.find tbl k)) vn_tbl
+                            let v = (Hashtbl.find tbl k) in
+                                Hashtbl.add tbl t v;
+                                Queue.add (t, (Hashtbl.find val_tbl v)) rewrites;
+                                Queue.add (t, v) vn_tbl
                         end
                     with e ->
                         fail_with (Printexc.to_string e)
@@ -146,6 +147,7 @@ let test_lvn blk seed =
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
 lvn_msg_for 0;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (fst (snd (test_lvn blk_0 1)));;
+(*Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (fst (snd (test_lvn blk_0 1)));;*)
 Queue.iter (fun x -> Printf.printf "%s = %s\n" (fst x) (snd x)) (snd (snd (test_lvn blk_0 1)));;
+(*Hashtbl.iter (fun x y -> Printf.printf "%d -> %s\n" x y) (snd (snd (test_lvn blk_0 1)));;*)
 print_og_block blk_0;;
