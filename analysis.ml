@@ -64,8 +64,6 @@ let blk_0 = [
 let hash_block blk seed = 
     let seed = ref seed in
     let vn_tbl = Queue.create () in
-    let rewrites = Queue.create () in
-    let val_tbl = Hashtbl.create 123456 in
     let tbl = Hashtbl.create 123456 in 
     let symbol_exists s = 
         Hashtbl.mem tbl s in
@@ -84,7 +82,6 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
-                    Hashtbl.add val_tbl !seed t; 
                     Queue.add (b ^ x ^ y, !seed) vn_tbl;
                     Queue.add (t, !seed) vn_tbl;
                     incr seed
@@ -95,7 +92,6 @@ let hash_block blk seed =
                         begin
                             let k = to_op_key (b, x, y) in
                                 Hashtbl.add tbl t (Hashtbl.find tbl k);
-                                Queue.add (t, (Hashtbl.find val_tbl (Hashtbl.find tbl k))) rewrites;
                                 Queue.add (t, (Hashtbl.find tbl k)) vn_tbl
                         end
                     with e ->
@@ -139,13 +135,12 @@ let hash_block blk seed =
                 
     in
     List.iter hash blk;
-    (tbl, (vn_tbl, rewrites));;
+    (tbl, vn_tbl);;
 
 let test_lvn blk seed = 
     hash_block blk seed;;
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
 lvn_msg_for 0;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (fst (snd (test_lvn blk_0 1)));;
-Queue.iter (fun x -> Printf.printf "%s = %s\n" (fst x) (snd x)) (snd (snd (test_lvn blk_0 1)));;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_0 1));;
 print_og_block blk_0;;
