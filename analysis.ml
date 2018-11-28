@@ -16,23 +16,37 @@ type edge = node * node;;
 type edges = edge list;;
 type cfg = nodes * edges;;
 
-(* path_exists : edge -> edge -> cfg -> bool;; *)
 
 (* Local Val Numbering *)
+let add = BinaryFunction "+";;
+let sub = BinaryFunction "-";;
+(* Test 1 *)
+(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let x = Symbol "x";;
 let y = Symbol "y";;
 let c = Symbol "c";;
 let seventeen = Symbol "17";;
-let add = BinaryFunction "+";;
-let sub = BinaryFunction "-";;
 let line_1 = Line (a, Operation (add, x, y));;
 let line_2 = Line (b, Operation (add, x, y));;
 let line_3 = Line (a, seventeen);;
 let line_4 = Line (c, Operation (add, x, y));;
 let blk_0 = [ line_1; line_2; ];;
 let blk_1 = [ line_1; line_2; line_3; line_4 ];;
+*)
+(* Test 2 *)
+let a = Symbol "a";;
+let b = Symbol "b";;
+let c = Symbol "c";;
+let d = Symbol "d";;
+let blk_0 = [ 
+                Line (a, Operation (add, b, c)); 
+                Line (b, Operation (sub, a, d)); 
+                Line (c, Operation (add, b, c)); 
+                Line (d, Operation (sub, a, d)); 
+            ];;
+
 
 let hash_block blk seed = 
     let seed = ref seed in
@@ -46,8 +60,8 @@ let hash_block blk seed =
             if not (symbol_exists (b ^ x ^ y)) then
                 begin
                     Hashtbl.add tbl (b ^ x ^ y) !seed; 
-                    Queue.add (b ^ x ^ y, !seed) vn_queue;
                     Hashtbl.add tbl t !seed; 
+                    Queue.add (b ^ x ^ y, !seed) vn_queue;
                     Queue.add (t, !seed) vn_queue;
                     incr seed
                 end
@@ -93,7 +107,7 @@ let hash_block blk seed =
     List.iter hash blk;
     (tbl, vn_queue);;
 
-let test_harness blk = 
-    hash_block blk 1;;
+let test_harness blk seed = 
+    hash_block blk seed;;
 
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_1));;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_harness blk_0 0));;
