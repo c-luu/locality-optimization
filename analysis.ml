@@ -49,7 +49,7 @@ let line_4 = Line (c, Operation (add, x, y));;
 let blk_0 = [ line_1; line_2; line_3; line_4 ];;
 *)
 (* Test 2 *)
-let a = Symbol "a";;
+(*let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
 let d = Symbol "d";;
@@ -59,6 +59,39 @@ let blk_0 = [
                 Line (c, Operation (add, b, c)); 
                 Line (d, Operation (sub, a, d)); 
             ];;
+*)
+
+(* Test *)
+let a = Symbol "a";;
+let b = Symbol "b";;
+let c = Symbol "c";;
+let d = Symbol "d";;
+let p = Symbol "p";;
+let q = Symbol "q";;
+let t1 = Symbol "t1";;
+let t2 = Symbol "t2";;
+let t3 = Symbol "t3";;
+let t4 = Symbol "t4";;
+let t5 = Symbol "t5";;
+let t6 = Symbol "t6";;
+let blk_1 = [ 
+                    Line (p, a); 
+                                    Line (q, b); 
+                                                    Line (t1, Operation (add, a, b)); 
+                                                                    Line (t2, Operation (add, a, b)); 
+                                                                                ];;
+let blk_2 = [ 
+                    Line (t3, Operation (add, p, q)); 
+                                    Line (c, Operation (sub, a, b)); 
+                                                ];;
+let blk_3 = [ 
+                    Line (t4, Operation (add, a, b)); 
+                                    Line (d, Operation (sub, p, q)); 
+];;
+let blk_4 = [ 
+                    Line (t5, Operation (add, p, q)); 
+                                    Line (t6, Operation (sub, p, q)); 
+];;
 
 let hash_block blk seed = 
     let seed = ref seed in
@@ -140,6 +173,11 @@ let test_lvn blk seed =
     hash_block blk seed;;
 
 (*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
-lvn_msg_for 0;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_0 0));;
-print_og_block blk_0;;
+lvn_msg_for 1;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_1 0));;
+lvn_msg_for 2;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_2 0));;
+lvn_msg_for 3;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_3 0));;
+lvn_msg_for 4;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_4 0));;
