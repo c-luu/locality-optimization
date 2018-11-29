@@ -6,14 +6,6 @@ type expression =
 type line = Line of expression * expression;;
 type basic_block = line list;;
 type ('k, 'v) lvn = ('k, 'v) Hashtbl.t;;
-type node = 
-    | Block of basic_block
-    | EntryNode of basic_block
-    | ExitNode of basic_block;;
-type nodes = node list;;
-type edge = node * node;;
-type edges = edge list;;
-type cfg = nodes * edges;;
 
 (* Utility Functions *)
 let fail_with msg = raise (Failure msg);;
@@ -33,37 +25,11 @@ let print_og_block blk =
     Printf.printf "Original Block:\n";
     List.iter print_line blk;;
 
-(* Local Value Numbering *)
+(* Local/ Super Local Value Numbering *)
 let add = BinaryFunction "+";;
 let sub = BinaryFunction "-";;
-(* Test 1 *)
-(*
-let a = Symbol "a";;
-let b = Symbol "b";;
-let x = Symbol "x";;
-let y = Symbol "y";;
-let c = Symbol "c";;
-let seventeen = Symbol "17";;
-let line_1 = Line (a, Operation (add, x, y));;
-let line_2 = Line (b, Operation (add, x, y));;
-let line_3 = Line (a, seventeen);;
-let line_4 = Line (c, Operation (add, x, y));;
-let blk_0 = [ line_1; line_2; line_3; line_4 ];;
-*)
-(* Test 2 *)
-(*
-let a = Symbol "a";;
-let b = Symbol "b";;
-let c = Symbol "c";;
-let d = Symbol "d";;
-let blk_0 = [ 
-                Line (a, Operation (add, b, c)); 
-                Line (b, Operation (sub, a, d)); 
-                Line (c, Operation (add, b, c)); 
-                Line (d, Operation (sub, a, d)); 
-            ];;
-*)
-(* Test 3 *)
+
+(* Test *)
 let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
@@ -72,6 +38,7 @@ let p = Symbol "p";;
 let q = Symbol "q";;
 let t1 = Symbol "t1";;
 let t2 = Symbol "t2";;
+let t3 = Symbol "t3";;
 let t4 = Symbol "t4";;
 let t5 = Symbol "t5";;
 let blk_1 = [ 
@@ -81,13 +48,15 @@ let blk_1 = [
                 Line (t2, Operation (add, a, b)); 
             ];;
 let blk_2 = [ 
+                Line (t3, Operation (add, p, q)); 
+                Line (c, Operation (sub, a, b)); 
+            ];;
+let blk_3 = [ 
                 Line (t4, Operation (add, a, b)); 
                 Line (d, Operation (sub, p, q)); 
             ];;
 
 let hash_blk blk seed tbl vn_tbl = 
-    (*let seed = ref seed in*)
-    (*let vn_tbl = Queue.create () in*)
     let symbol_exists s = 
         Hashtbl.mem tbl s in
     let to_op_key k =
@@ -169,9 +138,7 @@ let test_svn b1 b2=
 ;;    
 
 svn_msg_for "[B1, B3]";;
-test_svn blk_1 blk_2;;
+test_svn blk_1 blk_3;;
 
-(*lvn_msg_for 1;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_1 0));;
-print_og_block blk_1;;
-*)
+svn_msg_for "[B1, B2]";;
+test_svn blk_1 blk_2;;
