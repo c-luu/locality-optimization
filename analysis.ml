@@ -137,8 +137,7 @@ let test_svn b1 b2=
     Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) !(snd (lvn_2))
 ;;    
 
-svn_msg_for "[B1, B3]";;
-test_svn blk_1 blk_3;;
-
 svn_msg_for "[B1, B2]";;
 test_svn blk_1 blk_2;;
+svn_msg_for "[B1, B3]";;
+test_svn blk_1 blk_3;;
