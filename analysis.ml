@@ -19,6 +19,8 @@ type cfg = nodes * edges;;
 let fail_with msg = raise (Failure msg);;
 let lvn_msg_for blk = 
     Printf.printf "LVN Table for Block: %s\n" (string_of_int blk);;
+let svn_msg_for ebb = 
+    Printf.printf "LVN Table for EBB: %s\n" ebb;;
 let print_line line = 
     match line with
     | Line (Symbol t, Operation (BinaryFunction b, Symbol x, Symbol y)) ->
@@ -49,6 +51,7 @@ let line_4 = Line (c, Operation (add, x, y));;
 let blk_0 = [ line_1; line_2; line_3; line_4 ];;
 *)
 (* Test 2 *)
+(*
 let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
@@ -59,11 +62,32 @@ let blk_0 = [
                 Line (c, Operation (add, b, c)); 
                 Line (d, Operation (sub, a, d)); 
             ];;
+*)
+(* Test 3 *)
+let a = Symbol "a";;
+let b = Symbol "b";;
+let c = Symbol "c";;
+let d = Symbol "d";;
+let p = Symbol "p";;
+let q = Symbol "q";;
+let t1 = Symbol "t1";;
+let t2 = Symbol "t2";;
+let t4 = Symbol "t4";;
+let t5 = Symbol "t5";;
+let blk_1 = [ 
+                Line (p, a); 
+                Line (q, b); 
+                Line (t1, Operation (add, a, b)); 
+                Line (t2, Operation (add, a, b)); 
+            ];;
+let blk_2 = [ 
+                Line (t4, Operation (add, a, b)); 
+                Line (d, Operation (sub, p, q)); 
+            ];;
 
-let hash_block blk seed = 
-    let seed = ref seed in
-    let vn_tbl = Queue.create () in
-    let tbl = Hashtbl.create 123456 in 
+let hash_blk blk seed tbl vn_tbl = 
+    (*let seed = ref seed in*)
+    (*let vn_tbl = Queue.create () in*)
     let symbol_exists s = 
         Hashtbl.mem tbl s in
     let to_op_key k =
@@ -81,8 +105,8 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
-                    Queue.add (b ^ x ^ y, !seed) vn_tbl;
-                    Queue.add (t, !seed) vn_tbl;
+                    Queue.add (b ^ x ^ y, !seed) !vn_tbl;
+                    Queue.add (t, !seed) !vn_tbl;
                     incr seed
                 end
             else
@@ -91,7 +115,7 @@ let hash_block blk seed =
                         begin
                             let k = to_op_key (b, x, y) in
                                 Hashtbl.add tbl t (Hashtbl.find tbl k);
-                                Queue.add (t, (Hashtbl.find tbl k)) vn_tbl
+                                Queue.add (t, (Hashtbl.find tbl k)) !vn_tbl
                         end
                     with e ->
                         fail_with (Printexc.to_string e)
@@ -101,7 +125,7 @@ let hash_block blk seed =
         if not (symbol_exists s) then
             begin
                 Hashtbl.add tbl s !seed; 
-                Queue.add (s, !seed) vn_tbl;
+                Queue.add (s, !seed) !vn_tbl;
                 incr seed;
             end
     in
@@ -112,8 +136,8 @@ let hash_block blk seed =
                 begin
                     Hashtbl.add tbl right !seed; 
                     Hashtbl.add tbl left !seed; 
-                    Queue.add (right, !seed) vn_tbl;
-                    Queue.add (left, !seed) vn_tbl;
+                    Queue.add (right, !seed) !vn_tbl;
+                    Queue.add (left, !seed) !vn_tbl;
                     incr seed
                 end
     in
@@ -136,10 +160,18 @@ let hash_block blk seed =
     List.iter hash blk;
     (tbl, vn_tbl);;
 
-let test_lvn blk seed = 
-    hash_block blk seed;;
+let test_svn b1 b2=
+    let seed = ref 0 in
+    let vn_tbl = ref (Queue.create ()) in
+    let lvn_1 = hash_blk b1 seed (Hashtbl.create 123456) vn_tbl in
+    let lvn_2 = hash_blk b2 seed (fst lvn_1) (snd lvn_1) in
+    Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) !(snd (lvn_2))
+;;    
 
-(*Hashtbl.iter (fun x y -> Printf.printf "%s -> %d\n" x y) (fst (test_harness blk_0 0));;*)
-lvn_msg_for 0;;
-Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_0 0));;
-print_og_block blk_0;;
+svn_msg_for "[B1, B3]";;
+test_svn blk_1 blk_2;;
+
+(*lvn_msg_for 1;;
+Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) (snd (test_lvn blk_1 0));;
+print_og_block blk_1;;
+*)
