@@ -5,7 +5,6 @@ type expression =
     | Operation of binary_function * expression * expression;;
 type line = Line of expression * expression;;
 type basic_block = line list;;
-type ('k, 'v) lvn = ('k, 'v) Hashtbl.t;;
 module LiveValMap = Map.Make(String);;
 
 (* Logging *)
@@ -64,8 +63,6 @@ let to_op_key e tbl =
         fail_with "Need binary operation for this key form."  
 
 let hash_blk blk seed tbl vn_tbl = 
-    let symbol_exists s = 
-        Hashtbl.mem tbl s in
     let hash_op o =
         match o with
         | t , b , x , y ->
@@ -73,8 +70,6 @@ let hash_blk blk seed tbl vn_tbl =
                 begin
                     Hashtbl.add tbl (to_op_key (b, x, y)) !seed; 
                     Hashtbl.add tbl t !seed; 
-                    Queue.add (b ^ x ^ y, !seed) !vn_tbl;
-                    Queue.add (t, !seed) !vn_tbl;
                     incr seed
                 end
             else
@@ -82,7 +77,6 @@ let hash_blk blk seed tbl vn_tbl =
                     begin
                         let k = to_op_key (b, x, y) in
                             Hashtbl.add tbl t (Hashtbl.find tbl k);
-                            Queue.add (t, (Hashtbl.find tbl k)) !vn_tbl
                     end
                 end
     in
@@ -90,7 +84,6 @@ let hash_blk blk seed tbl vn_tbl =
         if not (symbol_exists s) then
             begin
                 Hashtbl.add tbl s !seed; 
-                Queue.add (s, !seed) !vn_tbl;
                 incr seed;
             end
     in
@@ -101,8 +94,6 @@ let hash_blk blk seed tbl vn_tbl =
                 begin
                     Hashtbl.add tbl right !seed; 
                     Hashtbl.add tbl left !seed; 
-                    Queue.add (right, !seed) !vn_tbl;
-                    Queue.add (left, !seed) !vn_tbl;
                     incr seed
                 end
     in
@@ -120,7 +111,6 @@ let hash_blk blk seed tbl vn_tbl =
             end
         | Line (_, _) ->
             fail_with "Main pattern not matched in hash function."
-                
     in
     List.iter hash blk;
     (tbl, vn_tbl);;
@@ -133,7 +123,15 @@ let test_svn b1 b2 =
     Queue.iter (fun x -> Printf.printf "%s -> %d\n" (fst x) (snd x)) !(snd (lvn_2))
 ;;    
 
-svn_msg_for "[B1, B2]";;
-test_svn blk_1 blk_2;;
-svn_msg_for "[B1, B3]";;
-test_svn blk_1 blk_3;;
+let not_hashed s lvn = 
+    LiveValMap.mem s lvn;;
+    
+let hash_symb sym seed =
+    if not_hashed then
+        begin
+            Hashtbl.add tbl s !seed; 
+            incr seed;
+        end
+
+let test_lvn blk seed = 
+    print_lvn (lvn blk seed) 
