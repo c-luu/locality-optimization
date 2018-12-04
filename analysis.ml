@@ -7,7 +7,7 @@ type line = Line of expression * expression;;
 type basic_block = line list;;
 type ('k, 'v) lvn = ('k, 'v) Hashtbl.t;;
 
-(* Utility Functions *)
+(* Logging *)
 let fail_with msg = raise (Failure msg);;
 let lvn_msg_for blk = 
     Printf.printf "LVN Table for Block: %s\n" (string_of_int blk);;
@@ -25,11 +25,9 @@ let print_og_block blk =
     Printf.printf "Original Block:\n";
     List.iter print_line blk;;
 
-(* Local/ Super Local Value Numbering *)
+(* Test *)
 let add = BinaryFunction "+";;
 let sub = BinaryFunction "-";;
-
-(* Test *)
 let a = Symbol "a";;
 let b = Symbol "b";;
 let c = Symbol "c";;
@@ -56,17 +54,17 @@ let blk_3 = [
                 Line (d, Operation (sub, p, q)); 
             ];;
 
+(*  Local value numbering for basic-blocks. *)
+let to_op_key e tbl = 
+    match e with
+    | Operation (BinaryFunction b, Symbol x, Symbol y) ->
+        (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
+    | _ ->
+        fail_with "Need binary operation for this key form."  
+
 let hash_blk blk seed tbl vn_tbl = 
     let symbol_exists s = 
         Hashtbl.mem tbl s in
-    let to_op_key k =
-        match k with
-        | b, x, y ->
-            try
-                (b ^ string_of_int (Hashtbl.find tbl x) ^ string_of_int (Hashtbl.find tbl y))  
-            with e ->
-                fail_with (Printexc.to_string e)
-    in
     let hash_op o =
         match o with
         | t , b , x , y ->
@@ -80,14 +78,11 @@ let hash_blk blk seed tbl vn_tbl =
                 end
             else
                 begin
-                    try
-                        begin
-                            let k = to_op_key (b, x, y) in
-                                Hashtbl.add tbl t (Hashtbl.find tbl k);
-                                Queue.add (t, (Hashtbl.find tbl k)) !vn_tbl
-                        end
-                    with e ->
-                        fail_with (Printexc.to_string e)
+                    begin
+                        let k = to_op_key (b, x, y) in
+                            Hashtbl.add tbl t (Hashtbl.find tbl k);
+                            Queue.add (t, (Hashtbl.find tbl k)) !vn_tbl
+                    end
                 end
     in
     let hash_symb s =
@@ -129,7 +124,7 @@ let hash_blk blk seed tbl vn_tbl =
     List.iter hash blk;
     (tbl, vn_tbl);;
 
-let test_svn b1 b2=
+let test_svn b1 b2 =
     let seed = ref 0 in
     let vn_tbl = ref (Queue.create ()) in
     let lvn_1 = hash_blk b1 seed (Hashtbl.create 123456) vn_tbl in
