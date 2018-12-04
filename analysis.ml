@@ -6,6 +6,7 @@ type expression =
 type line = Line of expression * expression;;
 type basic_block = line list;;
 type ('k, 'v) lvn = ('k, 'v) Hashtbl.t;;
+module LiveValMap = Map.Make(String);;
 
 (* Logging *)
 let fail_with msg = raise (Failure msg);;
